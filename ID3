@@ -1,0 +1,114 @@
+from math import log
+from math import log
+def calc_shannon(dataset):
+    numbers=len(dataset)#计算数据集中样本的总数
+    labelCount={ }#定义一个字典类型labelCount存储样本中的类型以及其数量
+    for featVec in dataset:
+        currentlabel=featVec[-1]
+        if currentlabel not in labelCount.keys():
+            labelCount[currentlabel]=0
+        labelCount[currentlabel]+=1
+    shannon=0.0
+    for key in labelCount:
+        prob=float(labelCount[key])/numbers
+        shannon-=prob*log(prob,2)#计算经验熵
+    return shannon    
+    
+#按照给定特征划分数据集
+def split_dataset(dataset,axis,value):
+    ret_dataset=[]#用来储存去掉某一特征后的样本集
+    for featVec in dataset:
+        if featVec[axis]==value:
+            reduce_feaVec=featVec[:axis]#只除去该特征值
+            reduce_feaVec.extend(featVec[axis+1:])
+            ret_dataset.append(reduce_feaVec)
+    return ret_dataset
+    
+    
+import operator
+def majority(classList):
+    classCount={}
+    for i in classList:
+        if i not in classList.key():
+            classCount[i]=0
+        classCount[i]+=1
+        sortclassCount=sort(classCount.iteritems(),key=operatorer.itemgetter(1),reverse=True)#按类别的数量降序排列
+        return sortclassCount[0][0]#返回最多类别的类型   
+        
+        
+def choosebestfeaturetosplit(dataset):
+    numberfeatures=len(dataset[0])-1
+    baseEntropy=calc_shannon(dataset)#计算经验熵
+    bestInfoGain=0.0;bestFeature=-1
+    for i in range(numberfeatures):#遍历所有特征
+        featlist=[example[i] for example in dataset]#将样本中该特征的所有值存储在featlist
+        uniqueVals=set(featlist)#set函数去掉featlist里面的值
+        newEntropy=0.0
+        for value in uniqueVals:#遍历该特征的不同取值
+            subdataset=split_dataset(dataset,i,value)
+            prob=-len(subdataset)/float(len(dataset))
+            newEntropy+=prob*calc_shannon(subdataset)#计算条件经验熵
+        infoGain=baseEntropy-newEntropy#该特征的信息增益
+        if(infoGain>bestInfoGain):#选取信息增益最大的特征作为划分特征属性
+            bestInfoGain=infoGain
+            bestFeature=i
+        return bestFeature        
+        
+import operator
+def majority(classList):
+    classCount={}
+    for i in classList:
+        if i not in classList.key():
+            classCount[i]=0
+        classCount[i]+=1
+        sortclassCount=sort(classCount.iteritems(),key=operatorer.itemgetter(1),reverse=True)#按类别的数量降序排列
+        return sortclassCount[0][0]#返回最多类别的类型
+        
+def choosebestfeaturetosplit(dataset):
+    numberfeatures=len(dataset[0])-1
+    baseEntropy=calc_shannon(dataset)#计算经验熵
+    bestInfoGain=0.0;bestFeature=-1
+    for i in range(numberfeatures):#遍历所有特征
+        featlist=[example[i] for example in dataset]#将样本中该特征的所有值存储在featlist
+        uniqueVals=set(featlist)#set函数去掉featlist里面的值
+        newEntropy=0.0
+        for value in uniqueVals:#遍历该特征的不同取值
+            subdataset=split_dataset(dataset,i,value)
+            prob=-len(subdataset)/float(len(dataset))
+            newEntropy+=prob*calc_shannon(subdataset)#计算条件经验熵
+        infoGain=baseEntropy-newEntropy#该特征的信息增益
+        if(infoGain>bestInfoGain):#选取信息增益最大的特征作为划分特征属性
+            bestInfoGain=infoGain
+            bestFeature=i
+        return bestFeature
+        
+def creat_Tree(dataset,labels):
+    classlist=[example[-1] for example in dataset]#将样本集的类别存储为classlist
+    if classlist.count(classlist[0])==len(classlist):#如果样本类别都相同，返回该类别
+        return classlist[0]
+    if len(dataset[0])==1:#如果只有一个特征时，返回出现次数最多的类别
+        return majority(classlist)
+    bestFeat=choosebestfeaturetosplit(dataset)#选择信息增益最大的特征，其下标赋给bestFeat
+    bestFeatLabel=labels[bestFeat]#其特征赋给bestFeatLabel
+    myTree={bestFeatLabel:{}}#
+    del(labels[bestFeat])#删除特征集中已经划分的特征
+    featValues=[example[bestFeat] for example in dataset]
+    uniqueValues=set(featValues)
+    for value in uniqueValues:
+        subLabels=labels[:]
+        myTree[bestFeatLabel][value]=creat_Tree(split_dataset(dataset,bestFeat,value),subLabels)#将去除以特征的样本集递归生成决策树
+    return myTree  
+    
+def createdataset():
+    dataset=[[1,1,'yes'],
+             [1,1,'yes'],
+             [1,0,'no'],
+             [0,1,'no'],
+             [0,1,'no']
+    ]#样本集
+    labels=['no surface','flippers']#特征集
+    return dataset,labels
+    
+dataset,labels=createdataset()
+mytree=creat_Tree(dataset,labels)
+mytree  
