@@ -1,0 +1,62 @@
+''' 输出：词条切片后的文档列表，对应的类别
+'''
+def loaddataset():
+    postingList=[....
+        
+    ]#输入词条切片后的文档集合
+    classlist=[]#类别列表
+    return postingList,classlist
+    
+#创建词汇表
+def createVocablist(dataset):
+    vocabSet=set([])#不重复集合
+    for i in dataset:
+        vocabSet=vocablist|set(i)
+    return list(vocabSet)#将vocabSet转换为列表    
+    
+'''输入：词汇表，输入文档
+   输出：文档向量
+'''
+#创建文档向量：记录词汇表单词是否在出现在输入文档中
+def set_words2Vec(vocabSet,inputSet):
+    returnVec=[0]*len(vocabSet)
+    for word in inputSet:
+        if word in vocabSet:#如果单词出现在词汇表中，其相应位置的计数置为1
+            returnVec[vocabSet.index(word)]=1
+        else:
+            print ("the word： %s is not in vocabSet" %word)
+    return returnVec    
+   
+#朴素贝叶斯训练函数
+'''输入为文档向量矩阵，文档类别矩阵
+   输出为p(word|0),p(word|1),p（侮辱性文档）
+   p(正常文档)=1-p（侮辱性文档）
+   '''
+def trainNB(trainMatrix,trainCategory):
+    numberDocu=len(trainMatrix)#计算文档数目
+    numberWords=len(trainMatrix[0])#计算每个文档中单词数目
+    PA=sum(trainCategory)/numberDocu#计算文档是侮辱性文档概率，正常文档概率为1-PA
+    p0Num=ones(numberWords);p1Num=ones(numberWords)
+    p0Denom=2.0;p1Denom=2.0
+    for i in range(numberDocu):
+        if trainCategory[i]==1:#如果文档是侮辱性文档
+            p1Num+=trainCategory[i]#记录文档中各个单词的数量
+            p1Denom+=sum(trainMatrix[i])
+        else:
+            p0Num+=trainMatrix[i]
+            p0Denom+=trainMatrix[i]
+    p1Vec=log(p1Num/p1Denom)#计算在侮辱性文档出现的条件下，各单词出现的条件概率
+    p0Vec=log(p0Num/p0Denom)#计算计算在正常文档出现的条件下，各单词出现的条件概率
+    return p0Vec,p1Vec,PA
+    
+#朴素贝叶斯分类函数
+'''输入为要进行分类的文档向量，p(x|c)和p(c)
+   输出为类别:1代表侮辱性文档，0代表正常文档
+'''
+def classifyNB(vec2Class,p0Vec,p1Vec,pClass1):
+    p1=sum(vec2Class*p1Vec)+log(pClass1)
+    P0=sum(vec2Class*p0Vec)+log(1.0-pClass1)
+    if p1>p0:
+        return 1
+    else:
+        return 0
