@@ -1,0 +1,129 @@
+#辅助函数
+def loadDataSet(filename):
+    datamat=[];labelmat=[]#用来存放数据矩阵和类别矩阵
+    fr=open(filename)
+    for lines in fr.readlines():#
+        linearr=lines.strip().split('\t')#逐行解析
+        datamat.append([float(linearr[0]),float(linearr[1])])
+        labelmat.append(float(linearr[2]))
+    return datamat,labelmat
+    
+#下标J的选择：J不等于I
+def selectJrandom(i,m):
+    j=i
+    while(j==i):#循环结束的情况是j不等于i
+        j=int(random,uniform(0,m))
+    return j
+    
+#调整alpha的值
+def clipalpha(aj,L,H):
+    if aj>H:
+        aj=H
+    if aj<L:
+        aj=L
+    return aj
+    
+#完整版SMO支持函数
+class opstruct():
+    '''初始化函数：
+    输入：对象，数据集，类别集，常数C和容错率toler
+    '''
+    def __init__(self,datamatin,classLabels,C,toler):
+        self.x=datamatin
+        self.labelMat=classLabels
+        self.c=C
+        self.toler=toler
+        
+        self.m=shape(datamatin)[0]#获取数据集的行
+        self.alphas=mat(zeros(self.m,1))#alpha值矩阵
+        self.b=0
+        self.eCache=mat(zeros(self.m,2))
+        #eCache成员用于保存误差值：第一列表示eCache是否有效；第二列表示E的实际值
+        
+    #计算误差E值函数
+    def calcEk(os,k):
+        fXk=float(multiply(os.alphas,os.labelMat).T*(os.x*os.x[k,:].T))+os.b
+        Ek=fXk-float(os.labelMat[k])
+        return Ek
+    
+    #选择alphaj函数
+    '''
+    '''
+    def selectj(i,os,Ei):
+        maxk=-1;maxDeltaE=0;Ej=0
+        os.eCache[i]=[1,Ei]
+        validEcacehList=nonzero(os.eCache[:,0].A)[0]#取eCache有效的alpha值
+        if(len(validEcacehList)>1):
+            for k in validEcacehList:
+                if k==i:continue#如果alphak=alphai,直接进行下一次循环
+                Ek=calcEk(os,k)#计算alphaj=alphak时的误差
+                deltaE=abs(Ei-Ek)
+                if(deltaE>maxDeltaE):
+                    maxDeltaE=deltaE;Ej=Ek;maxk=k
+                return Ej,maxk
+        else:
+            j=selectJrandom(i,os.m)
+            Ej=calcEk(os,j)
+        return Ej,j 
+    
+    
+    def updataEk(os,k):
+        Ek = calcEk(os,k)
+        os.eCache[k] = [1,Ek]
+    def innerL(i,os):
+        Ei = calcEk(os,i)
+        if ((os.labelMat[i] * Ei < -os.toler)and(os.alphas[i] < os.c))or\
+        ((os.labelMat[i] * Ei > os.toler)and(os.alphas[i] > 0)):
+            Ej,j = selectj(i,os,Ei)
+            alphaIold = os.alphas[i].copy();alphaJold=os.alphas[j].copy()
+        #alphai和j的旧值
+            if(os.labelMat[i] != os.labelMat[j]):
+                L = max(0,os.alphas[j]-os.alphas[i])
+                H = min(os.c,os.c+os.alphas[j]-os.alphas[i])
+            else:
+                L = max(0,os.alphas[i]+os.alphas[j]-os.c)
+                H = min(os.c,os.alphas[i]+os.alphas[j])
+            if L == H:print ("L==H");return 0
+            eta=2.0 * os.x[i,:]*os.x[j,:].T-os.x[i,:]*os.x[i,:].T-os.x[j,:]*os.x[j,:].T
+            if eta >= 0:print ("eta>=0");return 0
+            os.alphas[j] -= os.labelMat[j]*(Ei-Ej)/eta
+            os.alphas[j] = clipalpha(os.alphas[j],L,H)
+            updataEk(os,j)
+            if(abs(os.alphas[j] - alphaJold) < 0.00001):
+                print ("j not moving enough"); return 0
+            os.alphas[i] += os.labelMat[j]*os.labelMat[i]*(alphaJold-os.alphas[j])
+            updataEk(os, i)
+            b1 = os.b - Ei - os.labelMat[i] * ( os.alphas[i] - alphaIold ) * os.x[i,:] * os.x[i,:].T-\
+                 os.labelMat[j] * ( os.alphas[j] - alphaJold ) * os.x[i,:]* os.x[j,:].T
+            b2 = os.b - Ej - os.labelMat[i] * ( os.alphas[i] - alphaIold ) * os.x[i,:] * os.x[j,:].T-\
+                 os.labelMat[j] * ( os.alphas[j] - alphaJold ) * os.x[j,:]* os.x[j,:].T
+            if ((os.alphas[i] > 0 )and ( os.alphas[i] < os.c )):
+                os.b=b1
+            elif ((os.alphas[j] > 0 ) and (os.alphas[j] < os.c)):
+                os.b=b2
+            else: os.b = (b1 + b2)/ 2.0
+            return 1
+        else: 
+            return 0
+            
+def smop(datamatin,classlabels,c,toler,maxIter,kTup=('lin',0)):
+    os = opstruct(mat(datamatin),mat(classlabels).transpose(),c,toler)
+    iter = 0
+    entireSet= True;alphaPairsChanged = 0
+    while(iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
+        alphaPairsChanged = 0
+        if entireSet:
+            for i in range(os.m):
+                alphaPairsChanged += innerL(i,os)
+                print("fullset,iter: %d i:%d, pairs changed %d" %(iter,i,alphaPairsChanged))
+            iter += 1
+        else:
+            nonBoundIs = nonzero((os.alphas.A > 0) * (os.alphas.A < c))[0]
+            for i in nonBoundIs:
+                alphaPairsChanged += innerL(i,os)
+                print("non-bound, iter: %d i: %d, pairs changed %d" %(iter,i,alphaPairsChanged))
+            iter += 1
+        if entireSet:entireSet = False
+        elif(alphaPairsChanged == 0): entireSet = True
+        print("iteration number: %d"%iter)
+        return os.b,os.alphas            
